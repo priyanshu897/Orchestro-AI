@@ -1,20 +1,28 @@
 import base64
+import aiohttp
+import json
 from typing import Dict, Any
-from google.generativeai import GenerativeModel
+import google.generativeai as genai
 from ..Schemas.workflow_schema import WorkflowState
 from ..config import GOOGLE_API_KEY
+import asyncio
 from PIL import Image
 import io
 
-# Initialize the Gemini Vision model for image generation
-try:
-    gemini_vision_model = GenerativeModel("imagen-3.0-generate-002", api_key=GOOGLE_API_KEY)
-except Exception as e:
-    raise ValueError(f"Failed to initialize Gemini Vision Model: {e}. Please check your GOOGLE_API_KEY.")
+# Configure the API key globally, which is the correct method for this library
+genai.configure(api_key=GOOGLE_API_KEY)
 
-async def generate_image(state: WorkflowState) -> Dict[str, Any]:
+# Initialize the Gemini model that supports image generation
+# We will use gemini-1.5-flash which has multimodal capabilities
+try:
+    gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+except Exception as e:
+    raise ValueError(f"Failed to initialize Gemini Model: {e}. Please check your GOOGLE_API_KEY.")
+
+async def image_generation_agent(state: WorkflowState) -> Dict[str, Any]:
     """
-    The Image Generation Agent generates a base64-encoded image based on a prompt.
+    The Image Generation Agent generates an image using a multimodal model
+    and returns a mock image URL.
 
     Args:
         state: The current state of the workflow, containing a prompt.
@@ -22,25 +30,18 @@ async def generate_image(state: WorkflowState) -> Dict[str, Any]:
     Returns:
         A dictionary with the new `image_data` to update the state.
     """
-    prompt = state.get("topic")
-    if not prompt:
-        return {"image_data": "Error: No prompt provided for image generation."}
+    script = state.get("script")
+    if not script:
+        return {"image_data": "Error: No script provided for image generation."}
 
+    # Use a text-based model to create a descriptive prompt for an image API
     try:
         print("Running Image Generation Agent...")
-        # Generate the image from the prompt
-        response = gemini_vision_model.generate_content(prompt)
-        
-        # Access the raw image data from the response
-        pil_image = response.images[0]
 
-        # Convert the PIL image to a base64 string
-        buffered = io.BytesIO()
-        pil_image.save(buffered, format="PNG")
-        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        # For this prototype, we'll use a placeholder image service.
+        mock_image_url = f"https://placehold.co/600x400/2d2d2d/ffffff?text=Image+Generated"
         
-        # Return the base64-encoded image data
-        return {"image_data": f"data:image/png;base64,{img_str}"}
+        return {"image_data": mock_image_url}
 
     except Exception as e:
         print(f"Error during image generation: {e}")

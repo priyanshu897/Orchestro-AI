@@ -9,3 +9,5 @@ langgraph
 google-generativeai
 Pillow
 aiohttp
+langchain_huggingface
+google-genai

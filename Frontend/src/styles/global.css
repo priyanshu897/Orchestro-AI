@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Custom scrollbar styles to hide it */
+.scrollbar-hide::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none; /* For Firefox */
+    overflow: hidden; /* Fallback for unsupported browsers */
+}
+
+/* Base styles for dark theme components */
+.bg-gray-900 { background-color: #1a1a1a; }
+.bg-gray-800 { background-color: #2d2d2d; }
+.bg-gray-700 { background-color: #424242; }
+.text-gray-300 { color: #b0b0b0; }
+.text-gray-400 { color: #8e8e8e; }
+.border-gray-800 { border-color: #2d2d2d; }

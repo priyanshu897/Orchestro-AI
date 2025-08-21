@@ -3,7 +3,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 100vh;
+  height: 100vh; /* Make the app fill the full viewport height */
+  width: 100vw; /* Make the app fill the full viewport width */
   font-family: Arial, sans-serif;
   background: #f9f9f9;
 }
@@ -19,7 +20,8 @@
   flex-direction: column;
   justify-content: space-between;
   height: 80vh;
-  width: 600px;
+  width: 90%; /* Use a percentage for responsive width */
+  max-width: 800px; /* Set a max-width for large screens */
   border: 1px solid #ddd;
   border-radius: 12px;
   background: white;
