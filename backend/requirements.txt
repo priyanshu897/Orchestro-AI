@@ -1,6 +1,11 @@
 fastapi
 uvicorn
-langchain
-openai
 python-dotenv
 pydantic
+langchain
+langchain-core
+langchain-google-genai
+langgraph
+google-generativeai
+Pillow
+aiohttp
