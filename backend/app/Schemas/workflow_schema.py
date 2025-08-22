@@ -10,3 +10,4 @@ class WorkflowState(TypedDict):
     script: Optional[str]
     clips_info: Optional[str]
     posting_status: Optional[str]
+    image_data: Optional[str]

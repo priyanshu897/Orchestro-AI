@@ -20,27 +20,35 @@ async def linkedin_posting_agent(state: WorkflowState) -> Dict[str, Any]:
     Returns:
         A dictionary with the new `posting_status` for LinkedIn to update the state.
     """
-    script = state.get("script")
-    image_data = state.get("image_data")
+    script = state["script"]
+    image_data = state["image_data"]
 
     if not script or not image_data:
-        return {"posting_status": "Error: Missing script or image data. Cannot create LinkedIn post."}
+        error_msg = "## Error in LinkedIn Posting Agent\n\n**Error:** Missing script or image data. Cannot create LinkedIn post."
+        if not script:
+            error_msg += "\n\n- Script data is missing"
+        if not image_data:
+            error_msg += "\n\n- Image data is missing"
+        return {"posting_status": error_msg}
 
-    print("Running LinkedIn Posting Agent...")
-    await asyncio.sleep(4)  # Simulate the time needed to post
+    try:
+        print("Running LinkedIn Posting Agent...")
+        await asyncio.sleep(4)  # Simulate the time needed to post
 
-    # Use the LLM to generate the LinkedIn post text based on the script
-    post_prompt = (
-        f"You are a professional social media manager. Create a concise, professional, "
-        f"and engaging LinkedIn post based on this script outline:\n\n{script}\n\n"
-        f"Include relevant hashtags and a call-to-action to engage with the topic."
-    )
-    post_text = await generate_text(post_prompt)
+        # Use the LLM to generate the LinkedIn post text based on the script
+        post_prompt = (
+            f"You are a professional social media manager. Create a concise, professional, "
+            f"and engaging LinkedIn post based on this script outline:\n\n{script}\n\n"
+            f"Include relevant hashtags and a call-to-action to engage with the topic."
+        )
+        post_text = await generate_text(post_prompt)
 
-    # Simulate the posting action and return the result
-    status_message = (
-        f"LinkedIn post successfully published! "
-        f"The post includes the generated image and the following content:\n\n{post_text}"
-    )
+        # Format the output for better UI display
+        formatted_output = f"## LinkedIn Post Successfully Published! 🎉\n\n**Generated Post Content:**\n{post_text}\n\n**Post Details:**\n- Platform: LinkedIn\n- Status: Published\n- Includes: Generated image and optimized text\n- Hashtags: Automatically added\n- Call-to-action: Included\n\n*Note: This is a simulation. In production, this would actually post to LinkedIn.*"
 
-    return {"posting_status": status_message}
+        return {"posting_status": formatted_output}
+
+    except Exception as e:
+        print(f"Error during LinkedIn posting: {e}")
+        error_message = f"## Error in LinkedIn Posting Agent\n\n**Error:** {str(e)}\n\nPlease try again or check the previous steps."
+        return {"posting_status": error_message}

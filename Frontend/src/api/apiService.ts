@@ -29,11 +29,13 @@ export async function sendMessage(message: string): Promise<string> {
 // Function to handle the streaming workflow API call
 export async function startWorkflow(
     prompt: string,
-    onMessage: (message: string) => void,
+    onMessage: (event: any) => void,
     onError: (error: string) => void,
     onClose: () => void
 ) {
     try {
+        console.log('Starting workflow with prompt:', prompt);
+        
         const response = await fetch(`${BASE_URL}/workflow`, {
             method: 'POST',
             headers: {
@@ -41,6 +43,13 @@ export async function startWorkflow(
             },
             body: JSON.stringify({ prompt: prompt }),
         });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Workflow API error:', response.status, errorText);
+            onError(`Failed to start workflow: ${response.status} ${errorText}`);
+            return;
+        }
 
         if (!response.body) {
             onError("Failed to receive stream from server.");
@@ -51,9 +60,12 @@ export async function startWorkflow(
         const decoder = new TextDecoder();
         let buffer = '';
 
+        console.log('Workflow stream started, reading events...');
+
         while (true) {
             const { value, done } = await reader.read();
             if (done) {
+                console.log('Workflow stream completed');
                 onClose();
                 break;
             }
@@ -70,10 +82,16 @@ export async function startWorkflow(
                 if (line) {
                     try {
                         const event = JSON.parse(line);
-                        // The onMessage callback will be handled by the UI component
-                        onMessage(event);
+                        console.log('Received workflow event:', event);
+                        
+                        // Validate event structure
+                        if (event.type && event.node) {
+                            onMessage(event);
+                        } else {
+                            console.warn('Invalid event structure:', event);
+                        }
                     } catch (e) {
-                        console.error("Failed to parse JSON chunk:", e);
+                        console.error("Failed to parse JSON chunk:", e, "Raw line:", line);
                         onError("Failed to parse server response.");
                     }
                 }
@@ -81,6 +99,6 @@ export async function startWorkflow(
         }
     } catch (error) {
         console.error("Error starting workflow stream:", error);
-        onError("Failed to connect to backend workflow service.");
+        onError(`Failed to connect to backend workflow service: ${error}`);
     }
 }

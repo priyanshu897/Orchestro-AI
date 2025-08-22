@@ -1,27 +1,17 @@
-from langchain_huggingface import HuggingFaceEndpoint,ChatHuggingFace
-from ..config import HF_TOKEN
-from langchain_core.messages import HumanMessage
-from langchain_core.exceptions import OutputParserException
+from langchain_google_genai import ChatGoogleGenerativeAI
+from ..config import GOOGLE_API_KEY
+from langchain_core.messages import HumanMessage, SystemMessage
 from typing import List, Union
 
-# Initialize a free, conversational Hugging Face model
-# A stable, free option for text generation is often a fine-tuned LLama or Mistral model.
-# Note: You will need to make sure this model is accessible through the free tier of the Hugging Face Inference API.
+# Initialize a stable Google Gemini model
 try:
-    llm_endpoint = HuggingFaceEndpoint(
-        repo_id="openai/gpt-oss-120b",
-        task="text-generation",        # use text-generation task
-        provider="auto",               # or explicitly "hf-inference"
-        huggingfacehub_api_token=HF_TOKEN,
-        max_new_tokens=512,
-    )
-    chat_model = ChatHuggingFace(llm=llm_endpoint)
+    chat_model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=GOOGLE_API_KEY)
 except Exception as e:
-    raise ValueError(f"Failed to initialize HuggingFaceEndpoint: {e}. Please check your HF_TOKEN.")
+    raise ValueError(f"Failed to initialize ChatGoogleGenerativeAI: {e}. Please check your GOOGLE_API_KEY.")
 
-async def generate_text(prompt: Union[str, List[HumanMessage]]) -> str:
+async def generate_text(prompt: Union[str, List[Union[HumanMessage, SystemMessage]]]) -> str:
     """
-    Asynchronously generates text from the Hugging Face model.
+    Asynchronously generates text from the Google Gemini model.
 
     Args:
         prompt: The text prompt or a list of messages for the LLM.
@@ -37,12 +27,8 @@ async def generate_text(prompt: Union[str, List[HumanMessage]]) -> str:
             
         response = await chat_model.ainvoke(messages)
         print(response.content)
-        # The response from Hugging Face models often needs trimming
-        return response.content.strip()
+        return response.content
         
-    except OutputParserException as e:
-        print(f"Output parsing error: {e}")
-        return "An error occurred while parsing the LLM's response."
     except Exception as e:
         print(f"Error during LLM invocation: {e}")
         return "An error occurred while communicating with the LLM."

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LuSearch, LuSendHorizontal } from 'react-icons/lu';
+import { LuSearch, LuSendHorizontal, LuFeather, LuImage, LuLinkedin, LuFilm, LuYoutube, LuInstagram } from 'react-icons/lu';
 
 // Define the props for the HomePage component
 interface HomePageProps {
@@ -8,30 +8,25 @@ interface HomePageProps {
 
 // Define a type for our quick-start workflows
 interface QuickStartWorkflow {
-    id: string;
-    title: string;
-    prompt: string;
+  id: string;
+  title: string;
+  prompt: string;
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onStartWorkflow }) => {
   const [input, setInput] = useState('');
 
-  // Define the quick-start workflows
+  // Define the quick-start workflows with prompts that match the backend's routing logic
   const quickStartWorkflows: QuickStartWorkflow[] = [
     {
       id: 'linkedin_post',
       title: 'LinkedIn Post',
-      prompt: 'Create a LinkedIn post about the latest trends in AI.',
+      prompt: 'Create a LinkedIn blog post about the latest trends in AI.',
     },
     {
       id: 'video_clips',
       title: 'Video Clips',
-      prompt: 'Generate two short video clips and descriptions for a video on marketing strategies.',
-    },
-    {
-      id: 'social_media_post',
-      title: 'Social Media Post',
-      prompt: 'Generate a social media post for our new product launch.',
+      prompt: 'Generate short video clips and descriptions for a video on marketing strategies for YouTube and Instagram.',
     },
   ];
 
@@ -64,7 +59,7 @@ const HomePage: React.FC<HomePageProps> = ({ onStartWorkflow }) => {
       </div>
       
       {/* Quick-start workflow cards */}
-      <div className="flex flex-wrap justify-center gap-4 w-full max-w-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 w-full max-w-2xl">
         {quickStartWorkflows.map((wf) => (
           <button
             key={wf.id}

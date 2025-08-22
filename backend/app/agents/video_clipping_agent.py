@@ -18,27 +18,30 @@ async def video_clipping_agent(state: WorkflowState) -> Dict[str, Any]:
     Returns:
         A dictionary with the new `clips_info` to update the state.
     """
-    topic = state.get("topic")
+    topic = state["topic"]
     if not topic:
-        return {"clips_info": "Error: No topic provided for video clipping."}
+        return {"clips_info": "## Error in Video Clipping Agent\n\n**Error:** No topic provided for video clipping."}
 
-    print("Running Video Clipping Agent...")
-    await asyncio.sleep(5)  # Simulate a longer task for video processing
+    try:
+        print("Running Video Clipping Agent...")
+        await asyncio.sleep(5)  # Simulate a longer task for video processing
 
-    # Use the LLM to generate descriptions for the clips
-    clip_prompt = (
-        f"You are a video clipping specialist. Based on the topic '{topic}', "
-        f"generate a description for two short video clips. One is for YouTube Shorts "
-        f"and the other is for Instagram Reels. Each description should be tailored to "
-        f"the platform and should be concise and engaging."
-    )
-    
-    clips_descriptions = await generate_text(clip_prompt)
+        # Use the LLM to generate descriptions for the clips
+        clip_prompt = (
+            f"You are a video clipping specialist. Based on the topic '{topic}', "
+            f"generate a description for two short video clips. One is for YouTube Shorts "
+            f"and the other is for Instagram Reels. Each description should be tailored to "
+            f"the platform and should be concise and engaging."
+        )
+        
+        clips_descriptions = await generate_text(clip_prompt)
 
-    # Return the generated descriptions, which will be passed to the next agent
-    output_message = (
-        f"Simulated clipping complete. Two video clips have been prepared based on the topic. "
-        f"Here are the generated descriptions:\n\n{clips_descriptions}"
-    )
+        # Format the output for better UI display
+        formatted_output = f"## Video Clipping Complete ✂️\n\n**Topic:** {topic}\n\n**Generated Clip Descriptions:**\n{clips_descriptions}\n\n**Platforms:**\n- YouTube Shorts: Optimized for vertical format\n- Instagram Reels: Enhanced with trending elements\n\n**Status:** Clips prepared and ready for posting\n\n*Note: This is a simulation. In production, this would process actual video files.*"
 
-    return {"clips_info": output_message}
+        return {"clips_info": formatted_output}
+
+    except Exception as e:
+        print(f"Error during video clipping: {e}")
+        error_message = f"## Error in Video Clipping Agent\n\n**Error:** {str(e)}\n\nPlease try again with a different topic."
+        return {"clips_info": error_message}

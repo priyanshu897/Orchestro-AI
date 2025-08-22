@@ -11,3 +11,4 @@ Pillow
 aiohttp
 langchain_huggingface
 google-genai
+python-multipart

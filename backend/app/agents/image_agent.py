@@ -1,48 +1,41 @@
 import base64
-import aiohttp
-import json
+import re
 from typing import Dict, Any
-import google.generativeai as genai
 from ..Schemas.workflow_schema import WorkflowState
-from ..config import GOOGLE_API_KEY
-import asyncio
-from PIL import Image
-import io
-
-# Configure the API key globally, which is the correct method for this library
-genai.configure(api_key=GOOGLE_API_KEY)
-
-# Initialize the Gemini model that supports image generation
-# We will use gemini-1.5-flash which has multimodal capabilities
-try:
-    gemini_model = genai.GenerativeModel("gemini-1.5-flash")
-except Exception as e:
-    raise ValueError(f"Failed to initialize Gemini Model: {e}. Please check your GOOGLE_API_KEY.")
+from ..Services.llm_service import generate_text
 
 async def image_generation_agent(state: WorkflowState) -> Dict[str, Any]:
     """
-    The Image Generation Agent generates an image using a multimodal model
-    and returns a mock image URL.
+    The Image Generation Agent generates a prompt and a mock image URL.
 
     Args:
-        state: The current state of the workflow, containing a prompt.
+        state: The current state of the workflow, containing a script.
 
     Returns:
         A dictionary with the new `image_data` to update the state.
     """
-    script = state.get("script")
+    script = state["script"]
     if not script:
-        return {"image_data": "Error: No script provided for image generation."}
+        return {"image_data": "## Error in Image Generation Agent\n\n**Error:** No script provided for image generation."}
 
-    # Use a text-based model to create a descriptive prompt for an image API
     try:
         print("Running Image Generation Agent...")
 
-        # For this prototype, we'll use a placeholder image service.
-        mock_image_url = f"https://placehold.co/600x400/2d2d2d/ffffff?text=Image+Generated"
+        # 1. Use the LLM to generate a descriptive image prompt
+        image_prompt_text = await generate_text(f"Create a short, descriptive prompt for an AI image generator based on this script: {script}")
+
+        # 2. Use the generated prompt to create a mock image URL
+        # We clean the prompt and use it in the URL to make the image dynamic.
+        clean_prompt = re.sub(r'[^a-zA-Z0-9\s]', '', image_prompt_text)
+        mock_image_url = f"https://placehold.co/600x400/2d2d2d/ffffff?text=Image+for+'{clean_prompt[:20]}...'"
         
-        return {"image_data": mock_image_url}
+        # Format the output for better UI display
+        formatted_output = f"## Image Generation Complete\n\n**Generated Image Prompt:**\n{image_prompt_text}\n\n**Mock Image URL:**\n{mock_image_url}\n\n*Note: This is a placeholder image. In production, this would generate an actual AI image.*"
+        
+        print({"image_data": formatted_output})
+        return {"image_data": formatted_output}
 
     except Exception as e:
         print(f"Error during image generation: {e}")
-        return {"image_data": "Error: Failed to generate image."}
+        error_message = f"## Error in Image Generation Agent\n\n**Error:** {str(e)}\n\nPlease try again or check the previous step."
+        return {"image_data": error_message}
