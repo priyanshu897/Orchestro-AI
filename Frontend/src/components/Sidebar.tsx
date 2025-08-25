@@ -1,24 +1,26 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-// Corrected icon imports. We are now using FaHome from the 'fa' set.
-import { LuWorkflow, LuFeather, LuUsers, LuMessageCircle } from 'react-icons/lu';
-import { FaHome } from 'react-icons/fa';
+import { LuWorkflow, LuFeather, LuUsers, LuChrome, LuMessageCircle, LuArrowLeft } from 'react-icons/lu';
 
-// Define the same View type as in App.tsx to ensure consistency
 type View = 'home' | 'workflows' | 'social' | 'chat';
 
-// Define the shape of the props for the Sidebar component
 interface SidebarProps {
-  currentView: View; 
+  isSidebarOpen: boolean;
   onNavigate: (view: View) => void;
+  onClose: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isSidebarOpen, onNavigate, onClose }) => {
   return (
-    <div className="w-64 h-screen p-4 bg-gray-900 flex flex-col text-gray-300 border-r border-gray-800">
-      <div className="flex items-center mb-8">
-        <LuFeather className="h-8 w-8 text-blue-500 mr-2" />
-        <h1 className="text-xl font-bold text-white">Orchestro AI</h1>
+    <div className={`fixed top-0 left-0 h-screen w-64 p-4 bg-gray-900 flex flex-col text-gray-300 z-30 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center">
+          <LuFeather className="h-8 w-8 text-blue-500 mr-2" />
+          <h1 className="text-xl font-bold text-white">Orchestro AI</h1>
+        </div>
+        <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-800 text-gray-400">
+          <LuArrowLeft className="h-6 w-6" />
+        </button>
       </div>
       
       <nav className="flex-1">
@@ -26,18 +28,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
           <li className="mb-2">
             <Link 
               to="/home" 
-              onClick={() => onNavigate('home')}
-              className={`flex items-center p-3 rounded-xl transition-colors ${currentView === 'home' ? 'bg-blue-600 text-white' : 'hover:bg-gray-800'}`}
+              onClick={() => { onNavigate('home'); onClose(); }}
+              className={`flex items-center p-3 rounded-xl transition-colors hover:bg-gray-800`}
             >
-              <FaHome className="mr-3" /> {/* Replaced LuHome with FaHome */}
+              <LuChrome className="mr-3" />
               <span>Home</span>
             </Link>
           </li>
           <li className="mb-2">
             <Link 
               to="/workflows" 
-              onClick={() => onNavigate('workflows')}
-              className={`flex items-center p-3 rounded-xl transition-colors ${currentView === 'workflows' ? 'bg-blue-600 text-white' : 'hover:bg-gray-800'}`}
+              onClick={() => { onNavigate('workflows'); onClose(); }}
+              className={`flex items-center p-3 rounded-xl transition-colors hover:bg-gray-800`}
             >
               <LuWorkflow className="mr-3" />
               <span>Workflows</span>
@@ -46,8 +48,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
           <li className="mb-2">
             <Link 
               to="/social" 
-              onClick={() => onNavigate('social')}
-              className={`flex items-center p-3 rounded-xl transition-colors ${currentView === 'social' ? 'bg-blue-600 text-white' : 'hover:bg-gray-800'}`}
+              onClick={() => { onNavigate('social'); onClose(); }}
+              className={`flex items-center p-3 rounded-xl transition-colors hover:bg-gray-800`}
             >
               <LuUsers className="mr-3" />
               <span>Social Media</span>
@@ -56,8 +58,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
           <li className="mb-2">
             <Link 
               to="/chat" 
-              onClick={() => onNavigate('chat')}
-              className={`flex items-center p-3 rounded-xl transition-colors ${currentView === 'chat' ? 'bg-blue-600 text-white' : 'hover:bg-gray-800'}`}
+              onClick={() => { onNavigate('chat'); onClose(); }}
+              className={`flex items-center p-3 rounded-xl transition-colors hover:bg-gray-800`}
             >
               <LuMessageCircle className="mr-3" />
               <span>Chat</span>
@@ -66,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
         </ul>
       </nav>
       <div className="mt-auto p-4 border-t border-gray-800 text-center text-sm text-gray-500">
-        © 2024 Orchestro AI
+        © 2025 Orchestro AI
       </div>
     </div>
   );

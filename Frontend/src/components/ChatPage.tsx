@@ -1,27 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { sendMessage } from '../api/apiService';
+import { useWorkflow } from './WorkflowProvider';
+import { v4 as uuidv4 } from 'uuid';
 import { marked } from 'marked';
 import { LuSendHorizontal, LuLoader } from 'react-icons/lu';
 
-// Define the shape of a chat message
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
-// The onStartWorkflow prop is no longer optional as the router will always provide it
-interface ChatPageProps {
-  onStartWorkflow: (prompt: string) => void;
-}
-
-const ChatPage: React.FC<ChatPageProps> = ({ onStartWorkflow }) => {
+const ChatPage: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  
+  const chatWindowRef = useRef<HTMLDivElement>(null);
+
+  const navigate = useNavigate();
+  const { addThread } = useWorkflow();
+
   useEffect(() => {
-    setMessages([{ role: 'assistant', content: "Hello! I am Orchestro AI. How can I help you today? To start the agentic workflow, please type 'I want to make my video posting journey automated'." }]);
+    setMessages([{ role: 'assistant', content: "Hello! I am Orchestro AI. How can I help you today? To start the agentic workflow, please type 'Create a LinkedIn post'." }]);
   }, []);
+
+  useEffect(() => {
+    if (chatWindowRef.current) {
+      chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const streamMessage = (fullContent: string) => {
     let currentContent = "";
@@ -59,9 +66,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ onStartWorkflow }) => {
     setLoading(true);
 
     const triggerPhrase = "I want to make my video posting journey automated";
-    if (userMessage.toLowerCase().includes(triggerPhrase.toLowerCase())) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        onStartWorkflow(userMessage);
+    if (userMessage.toLowerCase().includes(triggerPhrase.toLowerCase()) || userMessage.toLowerCase().includes('create a linkedin post')) {
+        const threadId = uuidv4();
+        addThread(threadId, `New Workflow: ${userMessage.substring(0, 30)}...`);
+        navigate(`/workflows/${threadId}`, { state: { prompt: userMessage } });
         return;
     }
 
@@ -79,8 +87,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ onStartWorkflow }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#1a1a1a] rounded-xl shadow-lg border border-gray-700 p-4">
-      <div className="flex-grow overflow-y-auto space-y-4 p-4">
+    <div className="flex flex-col h-screen bg-[#1a1a1a] rounded-xl shadow-lg border border-gray-700 p-4">
+      <div ref={chatWindowRef} className="flex-grow overflow-y-auto space-y-4 p-4">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
@@ -99,7 +107,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ onStartWorkflow }) => {
           </div>
         )}
       </div>
-      <div className="mt-4 flex items-center">
+      <div className="mt-4 flex items-center flex-shrink-0">
         <input
           type="text"
           value={input}
