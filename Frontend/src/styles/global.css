@@ -37,3 +37,26 @@ body {
 .text-gray-300 { color: #b0b0b0; }
 .text-gray-400 { color: #8e8e8e; }
 .border-gray-800 { border-color: #2d2d2d; }
+
+/* Percentage width utilities for progress bars (5% increments) */
+.w-p-0 { width: 0%; }
+.w-p-5 { width: 5%; }
+.w-p-10 { width: 10%; }
+.w-p-15 { width: 15%; }
+.w-p-20 { width: 20%; }
+.w-p-25 { width: 25%; }
+.w-p-30 { width: 30%; }
+.w-p-35 { width: 35%; }
+.w-p-40 { width: 40%; }
+.w-p-45 { width: 45%; }
+.w-p-50 { width: 50%; }
+.w-p-55 { width: 55%; }
+.w-p-60 { width: 60%; }
+.w-p-65 { width: 65%; }
+.w-p-70 { width: 70%; }
+.w-p-75 { width: 75%; }
+.w-p-80 { width: 80%; }
+.w-p-85 { width: 85%; }
+.w-p-90 { width: 90%; }
+.w-p-95 { width: 95%; }
+.w-p-100 { width: 100%; }

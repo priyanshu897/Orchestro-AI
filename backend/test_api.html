@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <h1>Backend API Test</h1>
+    
+    <button onclick="testGetThreads()">Test GET /api/threads</button>
+    <button onclick="testGetThread()">Test GET /api/threads/demo-linkedin-1</button>
+    <button onclick="testPauseThread()">Test POST /api/threads/demo-social-1/pause</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8000/api';
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            results.appendChild(div);
+        }
+        
+        async function testGetThreads() {
+            try {
+                log('🌐 Testing GET /api/threads...');
+                const response = await fetch(`${BASE_URL}/threads`);
+                log(`📡 Response status: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                log(`✅ Success! Found ${data.threads?.length || 0} threads`, 'success');
+                log(`📦 Response data: ${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        async function testGetThread() {
+            try {
+                log('🌐 Testing GET /api/threads/demo-linkedin-1...');
+                const response = await fetch(`${BASE_URL}/threads/demo-linkedin-1`);
+                log(`📡 Response status: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                log(`✅ Success! Thread details retrieved`, 'success');
+                log(`📦 Response data: ${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        async function testPauseThread() {
+            try {
+                log('🌐 Testing POST /api/threads/demo-social-1/pause...');
+                const response = await fetch(`${BASE_URL}/threads/demo-social-1/pause`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                log(`📡 Response status: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                log(`✅ Success! Thread paused`, 'success');
+                log(`📦 Response data: ${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        // Auto-test on page load
+        window.onload = function() {
+            log('🚀 Page loaded, testing API...');
+            testGetThreads();
+        };
+    </script>
+</body>
+</html>

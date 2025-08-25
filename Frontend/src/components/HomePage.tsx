@@ -9,6 +9,7 @@ interface QuickStartWorkflow {
   title: string;
   prompt: string;
   icon: React.ReactElement;
+  workflowType: string;
 }
 
 const HomePage: React.FC = () => {
@@ -21,26 +22,41 @@ const HomePage: React.FC = () => {
       id: 'linkedin_post',
       title: 'Create a LinkedIn Post',
       prompt: 'Create a LinkedIn blog post about the latest trends in AI.',
-      icon: <LuLinkedin className="h-6 w-6 text-white" />
+      icon: <LuLinkedin className="h-6 w-6 text-white" />,
+      workflowType: 'linkedin_blog'
     },
     {
       id: 'video_clips',
       title: 'Generate Video Clips',
       prompt: 'Generate short video clips and descriptions for a video on marketing strategies for YouTube and Instagram.',
-      icon: <div className="flex items-center justify-center space-x-1"><LuYoutube className="text-white"/><LuInstagram className="text-white"/></div>
+      icon: <div className="flex items-center justify-center space-x-1"><LuYoutube className="text-white"/><LuInstagram className="text-white"/></div>,
+      workflowType: 'video_clipping'
     },
     {
       id: 'social_media_post',
       title: 'Social Media Post',
       prompt: 'Generate a social media post for our new product launch.',
-      icon: <LuFeather className="h-6 w-6 text-white" />
+      icon: <LuFeather className="h-6 w-6 text-white" />,
+      workflowType: 'linkedin_blog'
     },
   ];
 
-  const handleStartWorkflow = (prompt: string) => {
+  const detectWorkflowType = (prompt: string): string => {
+    const lowerPrompt = prompt.toLowerCase();
+    if (lowerPrompt.includes('linkedin') || lowerPrompt.includes('blog') || lowerPrompt.includes('post') || lowerPrompt.includes('image')) {
+      return 'linkedin_blog';
+    }
+    if (lowerPrompt.includes('video') || lowerPrompt.includes('clip') || lowerPrompt.includes('youtube') || lowerPrompt.includes('instagram') || lowerPrompt.includes('shorts')) {
+      return 'video_clipping';
+    }
+    return 'linkedin_blog'; // default
+  };
+
+  const handleStartWorkflow = (prompt: string, workflowType?: string) => {
     if (prompt.trim()) {
       const threadId = uuidv4();
-      addThread(threadId, `Workflow - ${prompt.substring(0, 20)}...`);
+      const detectedType = workflowType || detectWorkflowType(prompt);
+      addThread(threadId, `Workflow - ${prompt.substring(0, 30)}...`, detectedType);
       navigate(`/workflows/${threadId}`, { state: { prompt } });
     }
   };
@@ -70,7 +86,7 @@ const HomePage: React.FC = () => {
         {quickStartWorkflows.map((wf) => (
           <button
             key={wf.id}
-            onClick={() => handleStartWorkflow(wf.prompt)}
+            onClick={() => handleStartWorkflow(wf.prompt, wf.workflowType)}
             className="flex flex-col items-start p-4 bg-gray-800 rounded-xl shadow-md border border-gray-700 text-left hover:bg-gray-700 transition-colors cursor-pointer"
           >
             <div className="mb-2">{wf.icon}</div>

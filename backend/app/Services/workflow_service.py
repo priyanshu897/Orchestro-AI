@@ -1,97 +1,164 @@
 import asyncio
-from typing import TypedDict, Optional, AsyncGenerator, Dict, Any
-from langgraph.graph import StateGraph, END
-import re
-import uuid
+from typing import AsyncGenerator, Dict, Any
+from app.jsonsaver import json_saver
+from app.Schemas.workflow_schema import ThreadStatus, ThreadProgress
+import time
 
-# Import the modular agent functions
-from ..agents.ideation_agent import ideation_agent
-from ..agents.image_agent import image_generation_agent
-from ..agents.linkedin_agent import linkedin_posting_agent
-from ..agents.video_clipping_agent import video_clipping_agent
-from ..jsonsaver import json_saver # We'll use this for state persistence
-from ..Schemas.workflow_schema import WorkflowState
-
-# =============================================================================
-# 1. Define the Two Workflows as Separate Graphs
-# =============================================================================
-
-# -- Workflow 1: Blog Post for LinkedIn (Text & Image)
-def create_linkedin_workflow():
-    graph_builder = StateGraph(WorkflowState)
-    graph_builder.add_node("ideation_agent", ideation_agent)
-    graph_builder.add_node("image_agent", image_generation_agent)
-    graph_builder.add_node("linkedin_agent", linkedin_posting_agent)
-    
-    graph_builder.set_entry_point("ideation_agent")
-    graph_builder.add_edge("ideation_agent", "image_agent")
-    graph_builder.add_edge("image_agent", "linkedin_agent")
-    graph_builder.add_edge("linkedin_agent", END)
-    
-    return graph_builder.compile()
-
-# -- Workflow 2: Video Clipping for YouTube & Instagram
-def create_video_clipping_workflow():
-    graph_builder = StateGraph(WorkflowState)
-    graph_builder.add_node("video_clipping_agent", video_clipping_agent)
-    graph_builder.add_node("video_posting_agent", linkedin_posting_agent) # Reusing this agent for the demo
-    
-    graph_builder.set_entry_point("video_clipping_agent")
-    graph_builder.add_edge("video_clipping_agent", "video_posting_agent")
-    graph_builder.add_edge("video_posting_agent", END)
-    
-    return graph_builder.compile()
-
-# =============================================================================
-# 2. Orchestrator Function to Route and Run Workflows
-# =============================================================================
-linkedin_app = create_linkedin_workflow()
-video_clipping_app = create_video_clipping_workflow()
-
-def get_workflow_app(prompt: str):
-    """Dynamically selects a workflow based on the prompt."""
-    if re.search(r"blog|linkedin|post|image", prompt, re.IGNORECASE):
-        return "linkedin_blog", linkedin_app
-    if re.search(r"video|clip|youtube|instagram|shorts", prompt, re.IGNORECASE):
-        return "video_clipping", video_clipping_app
-    
-    return None, None
-
-async def orchestrate_workflow(user_prompt: str, thread_id: str) -> AsyncGenerator[Dict[str, Any], None]:
-    """
-    Selects and runs the appropriate LangGraph workflow based on the user's prompt.
-    """
-    workflow_name, app_to_run = get_workflow_app(user_prompt)
-
-    if not app_to_run:
-        yield {
-            "node": "orchestrator",
-            "output": "No matching workflow found for your request.",
-        }
-        return
-
-    # Load the initial state from our JSON saver
-    initial_state = json_saver.get_by_thread_id(thread_id)
-    if not initial_state:
-        # If no state is found, create a new initial state
-        initial_state = WorkflowState(topic=user_prompt, script=None, clips_info=None, posting_status=None, image_data=None)
-
-    # Stream the events from the compiled workflow_app
-    async for event in app_to_run.astream(initial_state):
-        node_name = next(iter(event.keys()))
-        if node_name not in ["__start__", "__end__"]:
-            node_output = event.get(node_name)
-            
-            output_content = None
-            if isinstance(node_output, dict) and node_output:
-                output_content = next(iter(node_output.values()))
-            elif isinstance(node_output, str):
-                output_content = node_output
-            
-            # After each step, save the updated state to our JSON saver
-            json_saver.put_by_thread_id(thread_id, node_output)
-            
-            yield {
-                "node": node_name,
-                "output": output_content,
+class WorkflowService:
+    def __init__(self):
+        self.workflows = {
+            'linkedin_blog': {
+                'name': 'LinkedIn Blog Creation',
+                'steps': ['ideation_agent', 'image_agent', 'linkedin_agent'],
+                'total_steps': 3
+            },
+            'video_clipping': {
+                'name': 'Video Clipping',
+                'steps': ['video_clipping_agent', 'video_posting_agent'],
+                'total_steps': 2
+            },
+            'social_media': {
+                'name': 'Social Media Campaign',
+                'steps': ['ideation_agent', 'image_agent', 'posting_agent'],
+                'total_steps': 3
             }
+        }
+
+    def detect_workflow_type(self, prompt: str) -> str:
+        """Detect workflow type based on prompt content"""
+        prompt_lower = prompt.lower()
+        
+        if any(word in prompt_lower for word in ['linkedin', 'post', 'blog', 'article']):
+            return 'linkedin_blog'
+        elif any(word in prompt_lower for word in ['video', 'clip', 'youtube', 'instagram', 'tiktok']):
+            return 'video_clipping'
+        elif any(word in prompt_lower for word in ['social', 'campaign', 'marketing', 'content']):
+            return 'social_media'
+        else:
+            return 'linkedin_blog'  # default
+
+    async def orchestrate_workflow(self, prompt: str, thread_id: str) -> AsyncGenerator[Dict[str, Any], None]:
+        """Orchestrate workflow execution with real-time updates"""
+        try:
+            # Detect workflow type
+            workflow_type = self.detect_workflow_type(prompt)
+            workflow_config = self.workflows[workflow_type]
+            
+            # Update thread with workflow type
+            json_saver.update_thread_status(thread_id, ThreadStatus.RUNNING, 'starting')
+            
+            # Initialize progress
+            completed_steps = 0
+            total_steps = workflow_config['total_steps']
+            
+            # Send workflow start event
+            yield {
+                "type": "workflow_start",
+                "workflow_type": workflow_type,
+                "total_steps": total_steps,
+                "thread_id": thread_id,
+                "timestamp": time.time()
+            }
+            
+            # Execute each step
+            for step_index, step_name in enumerate(workflow_config['steps'], 1):
+                # Update progress
+                completed_steps = step_index - 1
+                current_step = step_name
+                
+                # Send progress update
+                yield {
+                    "type": "progress",
+                    "progress": {
+                        "completed": completed_steps,
+                        "total": total_steps,
+                        "current_step": current_step,
+                        "percentage": round((completed_steps / total_steps) * 100, 1)
+                    },
+                    "thread_id": thread_id,
+                    "timestamp": time.time()
+                }
+                
+                # Update thread progress
+                json_saver.update_thread_progress(thread_id, completed_steps, total_steps, current_step)
+                
+                # Send step start event
+                yield {
+                    "type": "step_start",
+                    "node": step_name,
+                    "step_number": step_index,
+                    "step_name": step_name.replace('_', ' ').title(),
+                    "thread_id": thread_id,
+                    "timestamp": time.time()
+                }
+                
+                # Simulate agent work (replace with actual agent calls)
+                await self.simulate_agent_work(step_name)
+                
+                # Send step completion event
+                yield {
+                    "type": "step_complete",
+                    "node": step_name,
+                    "output": f"Completed {step_name.replace('_', ' ').title()} successfully",
+                    "step_number": step_index,
+                    "thread_id": thread_id,
+                    "timestamp": time.time()
+                }
+                
+                # Update progress
+                completed_steps = step_index
+                json_saver.update_thread_progress(thread_id, completed_steps, total_steps, current_step)
+                
+                # Small delay between steps
+                await asyncio.sleep(0.5)
+            
+            # Send workflow completion event
+            yield {
+                "type": "workflow_complete",
+                "node": "__end__",
+                "output": f"Workflow '{workflow_config['name']}' completed successfully!",
+                "progress": {
+                    "completed": total_steps,
+                    "total": total_steps,
+                    "current_step": "completed",
+                    "percentage": 100
+                },
+                "thread_id": thread_id,
+                "timestamp": time.time()
+            }
+            
+            # Update final status
+            json_saver.update_thread_status(thread_id, ThreadStatus.COMPLETED, 'completed')
+            
+        except Exception as e:
+            # Send error event
+            yield {
+                "type": "error",
+                "message": str(e),
+                "thread_id": thread_id,
+                "timestamp": time.time()
+            }
+            
+            # Update thread status to failed
+            json_saver.update_thread_status(thread_id, ThreadStatus.FAILED, 'error')
+            raise
+
+    async def simulate_agent_work(self, agent_name: str):
+        """Simulate agent work (replace with actual agent implementations)"""
+        # Simulate different types of work based on agent
+        if 'ideation' in agent_name:
+            await asyncio.sleep(2)  # Simulate thinking time
+        elif 'image' in agent_name:
+            await asyncio.sleep(3)  # Simulate image generation
+        elif 'video' in agent_name:
+            await asyncio.sleep(4)  # Simulate video processing
+        elif 'posting' in agent_name or 'linkedin' in agent_name:
+            await asyncio.sleep(1)  # Simulate posting
+        else:
+            await asyncio.sleep(1)  # Default
+
+    def get_workflow_app(self, workflow_type: str = None):
+        """Get workflow configuration"""
+        if workflow_type and workflow_type in self.workflows:
+            return self.workflows[workflow_type]
+        return self.workflows

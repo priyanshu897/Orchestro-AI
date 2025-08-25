@@ -6,6 +6,7 @@ import WorkflowsLayout from './workflowsLayout'; // ✅ New import for the layou
 import ChatPage from './ChatPage';
 import Sidebar from './Sidebar';
 import { WorkflowProvider } from './WorkflowProvider';
+import DebugPanel from './DebugPanel';
 import '../styles/global.css';
 
 type View = 'home' | 'workflows' | 'social' | 'chat';
@@ -54,6 +55,9 @@ const AppWithRouter: React.FC = () => {
           </Routes>
         </div>
       </div>
+      
+      {/* Debug Panel */}
+      <DebugPanel />
     </div>
   );
 };
