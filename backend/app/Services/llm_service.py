@@ -26,7 +26,7 @@ async def generate_text(prompt: Union[str, List[Union[HumanMessage, SystemMessag
             messages = prompt
             
         response = await chat_model.ainvoke(messages)
-        print(response.content)
+    
         return response.content
         
     except Exception as e:

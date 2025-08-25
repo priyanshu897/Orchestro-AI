@@ -1,26 +1,34 @@
 from ..Services.llm_service import generate_text
 from ..Schemas.workflow_schema import WorkflowState
 from typing import Dict, Any
+from langchain_core.messages import HumanMessage, SystemMessage
 
 async def ideation_agent(state: WorkflowState) -> Dict[str, Any]:
-    topic = state["topic"]
+    """
+    The Ideation Agent generates a video concept and script outline using the LLM.
+
+    Args:
+        state: The current state of the workflow, containing the topic.
+
+    Returns:
+        A dictionary with the new script to update the state.
+    """
+    topic = state.get("topic")
     if not topic:
         return {"script": "Error: No topic provided for ideation."}
 
-    prompt = (
-        f"You are a creative ideation agent for a content creator. Your task is to generate a concise video concept "
-        f"and a brief script outline for a video about: '{topic}'. "
-        f"Format the output with clear headings, such as 'Video Concept' and 'Script Outline'."
-        f"Keep the response concise but informative, suitable for social media content."
-    )
-    
+    # Define a detailed prompt for the LLM to act as a creative agent.
+    # We use a list of messages to handle persona better with conversational models.
+    prompt_messages = [
+        SystemMessage(content="You are a creative ideation agent for a content creator. Your task is to generate a concise video concept and a brief script outline. The script outline should include key talking points and a call-to-action. Format the output with clear headings."),
+        HumanMessage(content=f"Generate a video idea and script outline for the following topic: '{topic}'.")
+    ]
+
     try:
-        response = await generate_text(prompt)
+        # Call the core LLM service to get the real response.
+        response = await generate_text(prompt_messages)
         
-        # Format the response for better UI display
-        formatted_response = f"## Video Concept & Script Outline\n\n**Topic:** {topic}\n\n{response}"
-        
-        return {"script": formatted_response}
+        # Return the generated script, which LangGraph will use to update the state.
+        return {"script": response}
     except Exception as e:
-        error_message = f"## Error in Ideation Agent\n\n**Error:** {str(e)}\n\nPlease try again with a different topic."
-        return {"script": error_message}
+        return {"script": f"Error during ideation: {e}"}

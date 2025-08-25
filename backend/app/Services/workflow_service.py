@@ -2,12 +2,14 @@ import asyncio
 from typing import TypedDict, Optional, AsyncGenerator, Dict, Any
 from langgraph.graph import StateGraph, END
 import re
+import uuid
 
 # Import the modular agent functions
 from ..agents.ideation_agent import ideation_agent
 from ..agents.image_agent import image_generation_agent
 from ..agents.linkedin_agent import linkedin_posting_agent
 from ..agents.video_clipping_agent import video_clipping_agent
+from ..jsonsaver import json_saver # We'll use this for state persistence
 from ..Schemas.workflow_schema import WorkflowState
 
 # =============================================================================
@@ -32,7 +34,6 @@ def create_linkedin_workflow():
 def create_video_clipping_workflow():
     graph_builder = StateGraph(WorkflowState)
     graph_builder.add_node("video_clipping_agent", video_clipping_agent)
-    # The posting agent will handle both YouTube Shorts and Instagram Reels
     graph_builder.add_node("video_posting_agent", linkedin_posting_agent) # Reusing this agent for the demo
     
     graph_builder.set_entry_point("video_clipping_agent")
@@ -56,7 +57,7 @@ def get_workflow_app(prompt: str):
     
     return None, None
 
-async def orchestrate_workflow(user_prompt: str) -> AsyncGenerator[Dict[str, Any], None]:
+async def orchestrate_workflow(user_prompt: str, thread_id: str) -> AsyncGenerator[Dict[str, Any], None]:
     """
     Selects and runs the appropriate LangGraph workflow based on the user's prompt.
     """
@@ -64,16 +65,16 @@ async def orchestrate_workflow(user_prompt: str) -> AsyncGenerator[Dict[str, Any
 
     if not app_to_run:
         yield {
-            "type": "error",
             "node": "orchestrator",
             "output": "No matching workflow found for your request.",
         }
         return
 
-    # Initial state with the user's prompt
-    initial_state = WorkflowState(topic=user_prompt, script=None, clips_info=None, posting_status=None, image_data=None)
-    print(f"🚀 Starting workflow: {workflow_name}")
-    print(f"📝 Initial state: {initial_state}")
+    # Load the initial state from our JSON saver
+    initial_state = json_saver.get_by_thread_id(thread_id)
+    if not initial_state:
+        # If no state is found, create a new initial state
+        initial_state = WorkflowState(topic=user_prompt, script=None, clips_info=None, posting_status=None, image_data=None)
 
     # Stream the events from the compiled workflow_app
     async for event in app_to_run.astream(initial_state):
@@ -81,32 +82,16 @@ async def orchestrate_workflow(user_prompt: str) -> AsyncGenerator[Dict[str, Any
         if node_name not in ["__start__", "__end__"]:
             node_output = event.get(node_name)
             
-            # Extract the actual output content from the node
             output_content = None
             if isinstance(node_output, dict) and node_output:
-                # Get the first value from the output dictionary
                 output_content = next(iter(node_output.values()))
             elif isinstance(node_output, str):
                 output_content = node_output
             
-            print(f"🤖 Agent {node_name} completed with output: {output_content[:100]}...")
+            # After each step, save the updated state to our JSON saver
+            json_saver.put_by_thread_id(thread_id, node_output)
             
-            # Yield detailed information about the agent execution
             yield {
-                "type": "agent_output",
                 "node": node_name,
                 "output": output_content,
-                "timestamp": asyncio.get_event_loop().time(),
-                "workflow": workflow_name
             }
-    
-    print(f"✅ Workflow {workflow_name} completed successfully!")
-    
-    # Send completion signal
-    yield {
-        "type": "workflow_complete",
-        "node": "orchestrator",
-        "output": f"Workflow '{workflow_name}' completed successfully!",
-        "timestamp": asyncio.get_event_loop().time(),
-        "workflow": workflow_name
-    }
